@@ -67,7 +67,8 @@ class ReminderService
                 if (!$item->campuses->contains('id', $campus->id)) {
                     continue; // item not mapped to this campus
                 }
-                $rep = $campus->activeRepresentative();
+                // Per-item assignee takes priority; fall back to the campus default representative
+                $rep = $item->assignedRecipientForCampus($campus->id) ?? $campus->activeRepresentative();
                 if (!$rep) {
                     continue;
                 }
@@ -111,9 +112,9 @@ class ReminderService
             config('services.ksg.ddict_email', 'ddict@ksg.ac.ke'), // always CC DDICT
         ]);
 
-        $mailable = $kind === 'evidence'
-            ? new EvidenceReminderMail($item, $campus, $quarter, $fy)
-            : new QuarterlyReportReminderMail($item, $campus, $quarter, $fy);
+    $mailable = $kind === 'evidence'
+        ? new EvidenceReminderMail($item, $campus, $quarter, $fy, $rep)
+        : new QuarterlyReportReminderMail($item, $campus, $quarter, $fy, $rep);
 
         Mail::to($rep->email)->cc($cc)->send($mailable);
 
@@ -147,7 +148,7 @@ class ReminderService
     {
         return match ($quarter) {
             1 => Carbon::create($fy, 9, 30, 23, 59, 59),
-            2 => Carbon::create($fy, 12, 10, 23, 59, 59),// changed from 12/31 to 12/10 to allow for report submission testing
+            2 => Carbon::create($fy, 12, 13, 23, 59, 59),// changed from 12/31 to 12/10 to allow for report submission testing
             3 => Carbon::create($fy + 1, 3, 31, 23, 59, 59),
             default => Carbon::create($fy + 1, 6, 30, 23, 59, 59),
         };

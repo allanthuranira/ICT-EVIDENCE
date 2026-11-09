@@ -1,6 +1,6 @@
 <div style="font-family:Arial,sans-serif;max-width:640px">
-    <h3>KSG PC & Workplan Evidence Required</h3>
-    <p>Dear Campus Representative,</p>
+    <h3>PC & Workplan Evidence Required</h3>
+    <p>Dear {{ $recipientName ?? 'Campus Representative' }},</p>
     <p>This is a reminder to submit evidence for the item below:</p>
     <table style="border-collapse:collapse">
         <tr><td style="padding:4px 12px 4px 0"><strong>Item:</strong></td><td>{{ $item->code }} - {{ $item->name }}</td></tr>

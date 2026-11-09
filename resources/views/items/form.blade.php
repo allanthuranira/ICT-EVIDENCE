@@ -28,14 +28,36 @@
                     <label class="form-check-label">Q{{ $q }}</label>
                 </div>
             @endforeach</div>
-        <div class="col-12"><label class="form-label">Mapped Campuses / HQ</label><br>
+
+        <div class="col-12">
+            <label class="form-label fw-bold">Mapped Campuses / HQ &mdash; and the person responsible for each</label>
+            <p class="text-muted small mb-2">The person selected here receives the evidence and quarterly progress report emails for this item. Leave as "Campus default" to use the campus's active representative.</p>
             @foreach($campuses as $campus)
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="checkbox" name="campuses[]" value="{{ $campus->id }}"
-                           @checked(in_array($campus->id, old('campuses', $item->campuses->pluck('id')->toArray())))>
-                    <label class="form-check-label">{{ $campus->name }}</label>
+                @php
+                    $assignedId = old('recipients.'.$campus->id, $item->campuses->firstWhere('id', $campus->id)?->pivot?->recipient_id);
+                @endphp
+                <div class="border rounded p-2 mb-2 campus-row" data-campus="{{ $campus->id }}">
+                    <div class="form-check">
+                        <input class="form-check-input campus-check" type="checkbox" name="campuses[]" value="{{ $campus->id }}"
+                               id="campus_{{ $campus->id }}"
+                               @checked(in_array($campus->id, old('campuses', $item->campuses->pluck('id')->toArray())))>
+                        <label class="form-check-label fw-semibold" for="campus_{{ $campus->id }}">{{ $campus->name }}{{ $campus->is_hq ? ' (HQ)' : '' }}</label>
+                    </div>
+                    <div class="ms-4 mt-1 recipient-picker" style="{{ in_array($campus->id, old('campuses', $item->campuses->pluck('id')->toArray())) ? '' : 'display:none' }}">
+                        <select name="recipients[{{ $campus->id }}]" class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="">— Campus default representative —</option>
+                            @foreach($campus->recipients as $recipient)
+                                <option value="{{ $recipient->id }}" @selected((string)$assignedId === (string)$recipient->id)>
+                                    {{ $recipient->name }} ({{ $recipient->email }}){{ $recipient->role === 'ict_head' ? ' — ICT Head' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('recipients.'.$campus->id) <div class="text-danger small">{{ $message }}</div> @enderror
+                    </div>
                 </div>
-            @endforeach</div>
+            @endforeach
+        </div>
+
         <div class="col-12 form-check ms-2">
             <input class="form-check-input" type="checkbox" name="active" value="1" @checked(old('active', $item->active ?? true))>
             <label class="form-check-label">Active</label>
@@ -43,4 +65,14 @@
     </div>
     <button class="btn btn-dark mt-3">Save</button>
 </form>
+
+<script>
+// Show the recipient dropdown only when the campus is ticked
+document.querySelectorAll('.campus-check').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+        const picker = cb.closest('.campus-row').querySelector('.recipient-picker');
+        picker.style.display = cb.checked ? '' : 'none';
+    });
+});
+</script>
 @endsection

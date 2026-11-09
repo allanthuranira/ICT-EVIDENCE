@@ -23,6 +23,37 @@ class PerformanceItem extends Model
         return $this->belongsToMany(Campus::class, 'campus_performance_item');
     }
 
+    
+    /**
+     * Get the recipient explicitly assigned to this item for a campus.
+     * Returns null when no explicit override exists on the pivot.
+     */
+    public function assignedRecipientForCampus(int $campusId): ?Recipient
+    {
+        // Reuse the loaded relationship when available (avoids N+1 in loops).
+        $campus = $this->relationLoaded('campuses')
+            ? $this->campuses->firstWhere('id', $campusId)
+            : $this->campuses()->whereKey($campusId)->first();
+
+        if (! $campus) {
+            return null;
+        }
+
+        $recipientId = $campus->pivot->recipient_id ?? null;
+
+        return $recipientId ? Recipient::find($recipientId) : null;
+    }
+
+    /**
+     * Convenience: effective recipient for a campus — explicit assignment
+     * first, then the campus's active representative.
+     */
+    public function effectiveRecipientForCampus(int $campusId): ?Recipient
+    {
+        return $this->assignedRecipientForCampus($campusId)
+            ?? Campus::find($campusId)?->activeRepresentative();
+    }
+
     public function evidences(): HasMany
     {
         return $this->hasMany(EvidenceSubmission::class);
