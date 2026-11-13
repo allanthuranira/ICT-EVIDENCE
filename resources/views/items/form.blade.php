@@ -30,6 +30,42 @@
             @endforeach</div>
 
         <div class="col-12">
+            <hr>
+            <label class="form-label fw-bold">Report Template Grouping</label>
+<div class="text-muted small">
+    <p class="mb-2">All optional. These appear in the quarterly Word reports:</p>
+
+    <ul class="mb-2 ms-3 ps-3">
+        <li class="mb-1 ps-1">
+            for <strong>PC</strong> items the "PC report section" groups rows
+            (e.g. <em>A. Financial Stewardship and Fiscal Discipline</em>);
+        </li>
+        <li class="mb-0 ps-1">
+            for <strong>Workplan</strong> items the five fields below create the heading rows
+            (Strategic Issue / Strategic goal / Key Result Area / Outcomes / Strategic Objective).
+        </li>
+    </ul>
+
+    <p class="mb-0">
+        Leave any blank where the workplan does not define it.
+    </p>
+</div>
+        </div>
+        <div class="col-md-4"><label class="form-label">PC Report Section <span class="text-muted">(PC items)</span></label>
+            <input name="section" class="form-control" value="{{ old('section', $item->section) }}" placeholder="A. Financial Stewardship and Fiscal Discipline"></div>
+        <div class="col-md-4"><label class="form-label">Strategic Issue</label>
+            <input name="strategic_issue" class="form-control" value="{{ old('strategic_issue', $item->strategic_issue) }}"></div>
+        <div class="col-md-4"><label class="form-label">Strategic Goal</label>
+            <input name="strategic_goal" class="form-control" value="{{ old('strategic_goal', $item->strategic_goal) }}"></div>
+        <div class="col-md-4"><label class="form-label">Key Result Area (grouping)</label>
+            <input name="kra_group" class="form-control" value="{{ old('kra_group', $item->kra_group) }}"></div>
+        <div class="col-md-8"><label class="form-label">Outcomes</label>
+            <input name="outcomes" class="form-control" value="{{ old('outcomes', $item->outcomes) }}"></div>
+        <div class="col-md-6"><label class="form-label">Strategic Objective</label>
+            <input name="strategic_objective" class="form-control" value="{{ old('strategic_objective', $item->strategic_objective) }}"></div>
+
+        <div class="col-12">
+            <hr>
             <label class="form-label fw-bold">Mapped Campuses / HQ &mdash; and the person responsible for each</label>
             <p class="text-muted small mb-2">The person selected here receives the evidence and quarterly progress report emails for this item. Leave as "Campus default" to use the campus's active representative.</p>
             @foreach($campuses as $campus)

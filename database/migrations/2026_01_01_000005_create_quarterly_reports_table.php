@@ -26,7 +26,7 @@ return new class extends Migration {
             $table->timestamp('submitted_at');
             $table->timestamps();
 
-            $table->unique(['performance_item_id', 'campus_id', 'quarter', 'fy_start_year'], 'qreport_unique');
+            $table->unique(['performance_item_id', 'campus_id', 'quarter', 'fy_start_year']);
         });
     }
 

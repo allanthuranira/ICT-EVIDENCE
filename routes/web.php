@@ -27,4 +27,5 @@ Route::middleware('auth')->group(function () {
     Route::get('evidence', [EvidenceController::class, 'index'])->name('evidence.index');
     Route::get('evidence/{submission}', [EvidenceController::class, 'show'])->name('evidence.show');
     Route::get('reports', [QuarterlyReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [QuarterlyReportController::class, 'export'])->name('reports.export');
 });

@@ -23,11 +23,11 @@
                     <textarea name="notes" class="form-control" rows="2"></textarea></div>
             @else
                 <div class="row g-2 mb-2">
-                    <div class="col"><label class="form-label">Quarter Target</label>
+                    <div class="col"><label class="form-label">Q Target</label>
                         <input name="quarter_target" type="number" step="0.01" class="form-control"></div>
-                    <div class="col"><label class="form-label">Actual</label>
+                    <div class="col"><label class="form-label">Q Actual</label>
                         <input name="quarter_actual" type="number" step="0.01" class="form-control"></div>
-                    <div class="col"><label class="form-label">Variance</label>
+                    <div class="col"><label class="form-label">Q Variance</label>
                         <input name="quarter_variance" type="number" step="0.01" class="form-control"></div>
                 </div>
                 <div class="mb-2"><label class="form-label">Q Remarks / Explanation & Mitigation</label>

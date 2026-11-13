@@ -24,7 +24,7 @@ return new class extends Migration {
             $table->timestamps();
 
             // one evidence set per item/campus/quarter
-            $table->unique(['performance_item_id', 'campus_id', 'quarter', 'fy_start_year'], 'ev_sub_unique');
+            $table->unique(['performance_item_id', 'campus_id', 'quarter', 'fy_start_year']);
         });
     }
 

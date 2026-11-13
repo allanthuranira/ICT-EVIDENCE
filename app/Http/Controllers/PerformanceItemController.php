@@ -17,8 +17,6 @@ class PerformanceItemController extends Controller
             ->with('campuses.recipients')
             ->orderBy('type')->orderBy('code')->paginate(50);
         return view('items.index', compact('items'));
-
-        $items = PerformanceItem::with(['campuses' => fn($q) => $q->with('activeRecipient')])->paginate(20);
     }
 
     public function create()
@@ -106,6 +104,13 @@ class PerformanceItemController extends Controller
             'description' => 'nullable|string',
             'unit_of_measure' => 'nullable|string|max:50',
             'annual_target' => 'nullable|numeric',
+            // Template groupings (all optional - drive the Word report layout)
+            'section' => 'nullable|string|max:255',
+            'strategic_issue' => 'nullable|string|max:255',
+            'strategic_goal' => 'nullable|string|max:255',
+            'kra_group' => 'nullable|string|max:255',
+            'outcomes' => 'nullable|string',
+            'strategic_objective' => 'nullable|string|max:255',
             'q1' => 'boolean', 'q2' => 'boolean', 'q3' => 'boolean', 'q4' => 'boolean',
             'fy_start_year' => 'required|integer|min:2020|max:2100',
             'active' => 'boolean',
