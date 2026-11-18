@@ -5,7 +5,19 @@
     <a href="{{ route('items.create') }}" class="btn btn-dark btn-sm">+ Add Item</a>
 </div>
 <table class="table table-sm bg-white shadow-sm">
-    <thead><tr><th>Code</th><th>Type</th><th>Name</th><th>Template Grouping</th><th>Quarters</th><th>Annual Target</th><th>Campuses & Assigned To</th><th></th></tr></thead>
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Template Grouping</th>
+            <th>Quarters</th>
+            <th>Google Drive Link</th>
+            <th>Annual Target</th>
+            <th>Campuses & Assigned To</th>
+            <th></th>
+        </tr>
+    </thead>
     <tbody>
     @foreach($items as $item)
         <tr>
@@ -20,6 +32,16 @@
                 @endif
             </td>
             <td>@foreach([1,2,3,4] as $q) <span class="badge {{ $item->{'q'.$q} ? 'bg-success' : 'bg-light text-muted' }}">Q{{ $q }}</span> @endforeach</td>
+            <td>
+    @if($item->drive_folder_url)
+        <a href="{{ $item->drive_folder_url }}" target="_blank"
+           class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-folder2-open"></i> Drive
+        </a>
+    @else
+        <span class="text-muted small">not set</span>
+    @endif
+</td>
             <td>{{ $item->annual_target ?? '-' }} {{ $item->unit_of_measure }}</td>
             <td>
                 @foreach($item->campuses as $campus)

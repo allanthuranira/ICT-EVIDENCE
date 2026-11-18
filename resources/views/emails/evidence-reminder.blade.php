@@ -5,6 +5,8 @@
     <table style="border-collapse:collapse">
         <tr><td style="padding:4px 12px 4px 0"><strong>Item:</strong></td><td>{{ $item->code }} - {{ $item->name }}</td></tr>
         <tr><td style="padding:4px 12px 4px 0"><strong>Campus</strong></td><td>{{ $campus->name }}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0"><strong>Description:</strong></td><td>{{ $item->description }}</td></tr>
+        
         <tr><td style="padding:4px 12px 4px 0"><strong>Quarter:</strong></td><td>Q{{ $quarter }}, FY {{ $fy }}/{{ $fy + 1 }}</td></tr>
     </table>
     <p><a href="{{ $submitUrl }}"

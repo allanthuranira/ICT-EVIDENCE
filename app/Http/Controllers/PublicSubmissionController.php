@@ -42,26 +42,35 @@ class PublicSubmissionController extends Controller
         ]);
 
         if ($kind === 'evidence') {
-            $request->validate(['files' => 'required|array|min:1', 'files.*' => 'file|max:51200']); // 50MB each
+            $request->validate([
+                'files' => 'required|array|min:1',
+                'files.*' => 'file|max:51200', // 50MB each
+            ]);
 
             foreach ($request->file('files') as $file) {
                 $diskPath = $file->store("evidence/Q{$quarter}/{$fy}");
                 $sub = EvidenceSubmission::create([
-                    'performance_item_id' => $itemId, 'campus_id' => $campusId,
-                    'quarter' => $quarter, 'fy_start_year' => $fy,
+                    'performance_item_id' => $itemId,
+                    'campus_id' => $campusId,
+                    'quarter' => $quarter,
+                    'fy_start_year' => $fy,
                     'original_filename' => $file->getClientOriginalName(),
                     'stored_filename' => basename($diskPath),
                     'disk_path' => $diskPath,
-                    'notes' => $common['notes'],
+                    'notes' => $common['notes'] ?? null,
                     'submitted_by_email' => $common['submitted_by_email'],
                     'submitted_at' => now(),
                 ]);
 
-                // Push to Google Drive: folder "{code} - {name}", file "B1.1_Baringo_Q1_xxx.pdf"
-                if ($driveResult = $drive->uploadEvidence($sub)) {
-                    $sub->update(['drive_file_id' => $driveResult['id'], 'drive_link' => $driveResult['link']]);
+                if ($result = $drive->uploadEvidence($sub)) {
+                    $sub->update([
+                        'drive_file_id' => $result['id'] ?? null,
+                        'drive_link' => $result['link'] ?? null,
+                        'drive_folder_url' => $result['folder_url'] ?? null,
+                    ]);
                 }
             }
+
             $message = 'Evidence submitted successfully. Reminder emails for this item have stopped.';
         } else {
             $r = $request->validate([

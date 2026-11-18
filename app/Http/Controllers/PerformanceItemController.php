@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Campus;
 use App\Models\PerformanceItem;
+use App\Services\GoogleDriveService;   
 use App\Models\Recipient;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +25,7 @@ class PerformanceItemController extends Controller
         return view('items.form', [
             'item' => new PerformanceItem(['fy_start_year' => 2026]),
             'campuses' => $this->campusesWithRecipients(),
+            
         ]);
     }
 
@@ -31,6 +33,12 @@ class PerformanceItemController extends Controller
     {
         $data = $this->validateData($request);
         $sync = $this->campusSyncData($request);
+
+        // Normalize the Drive folder input to id + url
+        [$data['drive_folder_id'], $data['drive_folder_url']] =
+            $this->resolveDriveFolder($data['drive_folder'] ?? null);
+
+        unset($data['drive_folder']); // not a DB column
 
         $item = PerformanceItem::create($data);
         $item->campuses()->sync($sync);
@@ -44,10 +52,15 @@ class PerformanceItemController extends Controller
         return view('items.form', ['item' => $item, 'campuses' => $this->campusesWithRecipients()]);
     }
 
-    public function update(Request $request, PerformanceItem $item)
+    public function update(Request $request, PerformanceItem $item, GoogleDriveService $drive)
     {
         $item->update($this->validateData($request));
         $item->campuses()->sync($this->campusSyncData($request));
+
+        [$data['drive_folder_id'], $data['drive_folder_url']] =
+            $this->resolveDriveFolder($data['drive_folder'] ?? null);
+
+        unset($data['drive_folder']);
 
         return redirect()->route('items.index')->with('success', 'Item updated.');
     }
@@ -102,6 +115,7 @@ class PerformanceItemController extends Controller
             'code' => 'required|string|max:20',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+             'drive_folder' => ['nullable', 'string', new \App\Rules\GoogleDriveFolder],
             'unit_of_measure' => 'nullable|string|max:50',
             'annual_target' => 'nullable|numeric',
             // Template groupings (all optional - drive the Word report layout)
@@ -123,5 +137,20 @@ class PerformanceItemController extends Controller
             'q3' => $request->has('q3'), 'q4' => $request->has('q4'),
             'active' => $request->has('active', true),
         ]);
+    }
+
+    private function resolveDriveFolder(?string $input): array
+    {
+          $id = GoogleDriveService::parseFolderId($input);
+        if (!$id) {
+            return [null, null];
+        }
+
+        // Prefer the canonical URL when we have it
+        $url = str_starts_with((string) $input, 'http')
+            ? $input
+            : "https://drive.google.com/drive/folders/{$id}";
+
+        return [$id, $url];
     }
 }

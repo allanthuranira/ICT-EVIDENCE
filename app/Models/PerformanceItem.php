@@ -11,7 +11,7 @@ class PerformanceItem extends Model
     protected $fillable = [
           'weight','sort_order','type', 'code', 'name', 'description', 'unit_of_measure', 'annual_target',
         'section', 'strategic_issue', 'strategic_goal', 'kra_group', 'outcomes', 'strategic_objective',
-        'q1', 'q2', 'q3', 'q4', 'fy_start_year', 'active',
+        'q1', 'q2', 'q3', 'q4', 'drive_folder_id', 'drive_folder_url', 'fy_start_year', 'active',
     ];
 
     protected $casts = [

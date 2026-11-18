@@ -9,10 +9,10 @@
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('dashboard') }}">KSG Evidence System</a>
+        <a class="navbar-brand" href="{{ route('dashboard') }}">PC & Workplan System</a>
         <div class="navbar-nav">
             <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
-            <a class="nav-link" href="{{ route('items.index') }}">PC Targets / KRAs</a>
+            <a class="nav-link" href="{{ route('items.index') }}">PC Targets / Workplan KRAs</a>
             <a class="nav-link" href="{{ route('campuses.index') }}">Campuses</a>
             <a class="nav-link" href="{{ route('recipients.index') }}">Recipients</a>
             <a class="nav-link" href="{{ route('evidence.index') }}">Evidence</a>
