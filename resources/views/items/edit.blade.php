@@ -30,7 +30,7 @@
     @endif
 
     {{-- The shared form --}}
-    @include('items._form', [
+    @include('items.form', [
         'item' => $item,
         'campuses' => $campuses,
     ])

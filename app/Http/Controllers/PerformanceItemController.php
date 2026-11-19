@@ -4,153 +4,125 @@ namespace App\Http\Controllers;
 
 use App\Models\Campus;
 use App\Models\PerformanceItem;
-use App\Services\GoogleDriveService;   
-use App\Models\Recipient;
+use App\Rules\GoogleDriveFolder;
+use App\Services\GoogleDriveService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class PerformanceItemController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $items = PerformanceItem::forFy((int) $request->get('fy', 2026))
-            ->when($request->type, fn($q) => $q->where('type', $request->type))
-            ->with('campuses.recipients')
-            ->orderBy('type')->orderBy('code')->paginate(50);
+        $items = PerformanceItem::with(['campuses.recipients'])
+            ->orderBy('type')->orderBy('code')
+            ->paginate(20);
+
         return view('items.index', compact('items'));
     }
 
     public function create()
     {
-        return view('items.form', [
-            'item' => new PerformanceItem(['fy_start_year' => 2026]),
-            'campuses' => $this->campusesWithRecipients(),
-            
+        return view('items.create', [
+            'campuses' => Campus::with('recipients')->orderBy('name')->get(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $data = $this->validateData($request);
-        $sync = $this->campusSyncData($request);
-
-        // Normalize the Drive folder input to id + url
-        [$data['drive_folder_id'], $data['drive_folder_url']] =
-            $this->resolveDriveFolder($data['drive_folder'] ?? null);
-
-        unset($data['drive_folder']); // not a DB column
+        $data = $this->validated($request);
+        $this->extractDrive($data);
 
         $item = PerformanceItem::create($data);
-        $item->campuses()->sync($sync);
 
-        return redirect()->route('items.index')->with('success', 'Item created.');
+        $this->syncCampuses($item, $request);
+
+        return redirect()->route('items.index')->with('status', 'Item created.');
     }
 
     public function edit(PerformanceItem $item)
     {
-        $item->load('campuses.recipients');
-        return view('items.form', ['item' => $item, 'campuses' => $this->campusesWithRecipients()]);
-    }
+        $item->load('campuses');
 
-    public function update(Request $request, PerformanceItem $item, GoogleDriveService $drive)
-    {
-        $item->update($this->validateData($request));
-        $item->campuses()->sync($this->campusSyncData($request));
-
-        [$data['drive_folder_id'], $data['drive_folder_url']] =
-            $this->resolveDriveFolder($data['drive_folder'] ?? null);
-
-        unset($data['drive_folder']);
-
-        return redirect()->route('items.index')->with('success', 'Item updated.');
-    }
-
-    public function destroy(PerformanceItem $item)
-    {
-        $item->update(['active' => false]); // soft-disable so history stays intact
-        return back()->with('success', 'Item deactivated.');
-    }
-
-    private function campusesWithRecipients()
-    {
-        return Campus::where('active', true)->with(['recipients' => fn($q) => $q->where('active', true)])->get();
-    }
-
-    /*
-     * Build the sync array: [campus_id => ['recipient_id' => ...]]
-     * Validates that every chosen recipient actually belongs to that campus.
-     */
-    private function campusSyncData(Request $request): array
-    {
-        $campusIds = $request->input('campuses', []);
-        $choices = $request->input('recipients', []);
-
-        $sync = [];
-        foreach ($campusIds as $campusId) {
-            $recipientId = $choices[$campusId] ?? null;
-
-            if ($recipientId) {
-                $belongs = Recipient::where('id', $recipientId)
-                    ->where('campus_id', $campusId)
-                    ->where('active', true)
-                    ->exists();
-
-                if (! $belongs) {
-                    throw ValidationException::withMessages([
-                        'recipients.' . $campusId => 'The selected recipient does not belong to that campus (or is inactive).',
-                    ]);
-                }
-            }
-
-            $sync[$campusId] = ['recipient_id' => $recipientId ?: null];
-        }
-
-        return $sync;
-    }
-
-    private function validateData(Request $request): array
-    {
-        return $request->validate([
-            'type' => 'required|in:pc,workplan',
-            'code' => 'required|string|max:20',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-             'drive_folder' => ['nullable', 'string', new \App\Rules\GoogleDriveFolder],
-            'unit_of_measure' => 'nullable|string|max:50',
-            'annual_target' => 'nullable|numeric',
-            // Template groupings (all optional - drive the Word report layout)
-            'section' => 'nullable|string|max:255',
-            'strategic_issue' => 'nullable|string|max:255',
-            'strategic_goal' => 'nullable|string|max:255',
-            'kra_group' => 'nullable|string|max:255',
-            'outcomes' => 'nullable|string',
-            'strategic_objective' => 'nullable|string|max:255',
-            'q1' => 'boolean', 'q2' => 'boolean', 'q3' => 'boolean', 'q4' => 'boolean',
-            'fy_start_year' => 'required|integer|min:2020|max:2100',
-            'active' => 'boolean',
-            'campuses' => 'nullable|array',
-            'campuses.*' => 'exists:campuses,id',
-            'recipients' => 'nullable|array',
-            'recipients.*' => 'nullable|exists:recipients,id',
-        ] + [
-            'q1' => $request->has('q1'), 'q2' => $request->has('q2'),
-            'q3' => $request->has('q3'), 'q4' => $request->has('q4'),
-            'active' => $request->has('active', true),
+        return view('items.edit', [
+            'item' => $item,
+            'campuses' => Campus::with('recipients')->orderBy('name')->get(),
         ]);
     }
 
-    private function resolveDriveFolder(?string $input): array
+    public function update(Request $request, PerformanceItem $item)
     {
-          $id = GoogleDriveService::parseFolderId($input);
-        if (!$id) {
-            return [null, null];
+        $data = $this->validated($request);
+        $this->extractDrive($data);
+
+        $item->update($data);
+
+        $this->syncCampuses($item, $request);
+
+        return redirect()->route('items.index')->with('status', 'Item updated.');
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+     |  Helpers — must live INSIDE the class body, before the final }
+     * ───────────────────────────────────────────────────────────── */
+
+    private function validated(Request $request): array
+    {
+        return $request->validate([
+            'type'            => 'required|in:pc,workplan',
+            'code'            => 'required|string|max:50',
+            'name'            => 'required|string|max:255',
+            'description'     => 'nullable|string',
+            'unit_of_measure' => 'nullable|string|max:50',
+            'annual_target'   => 'nullable|numeric',
+            'weight'          => 'nullable|numeric',
+            'section'         => 'nullable|string|max:20',
+            'strategic_issue' => 'nullable|string',
+            'strategic_goal'  => 'nullable|string',
+            'kra_group'       => 'nullable|string|max:150',
+            'outcomes'        => 'nullable|string',
+            'strategic_objective' => 'nullable|string',
+            'q1' => 'nullable|boolean',
+            'q2' => 'nullable|boolean',
+            'q3' => 'nullable|boolean',
+            'q4' => 'nullable|boolean',
+            'fy_start_year' => 'required|integer|min:2020|max:2100',
+            'active'        => 'nullable|boolean',
+            'drive_folder'  => ['nullable', 'string', new GoogleDriveFolder],
+            'campuses'      => 'nullable|array',
+            'campuses.*'    => 'integer|exists:campuses,id',
+            'recipients'    => 'nullable|array',
+            'recipients.*'  => 'nullable|integer|exists:recipients,id',
+        ]);
+    }
+
+    private function extractDrive(array &$data): void
+    {
+        $input = $data['drive_folder'] ?? null;
+
+        $id = GoogleDriveService::parseFolderId($input);
+        if ($id) {
+            $data['drive_folder_id']  = $id;
+            $data['drive_folder_url'] = str_starts_with((string) $input, 'http')
+                ? $input
+                : GoogleDriveService::folderUrl($id);
+        } else {
+            $data['drive_folder_id']  = null;
+            $data['drive_folder_url'] = null;
         }
 
-        // Prefer the canonical URL when we have it
-        $url = str_starts_with((string) $input, 'http')
-            ? $input
-            : "https://drive.google.com/drive/folders/{$id}";
+        unset($data['drive_folder']);
+    }
 
-        return [$id, $url];
+    private function syncCampuses(PerformanceItem $item, Request $request): void
+    {
+        $campusIds = $request->input('campuses', []);
+        $recipients = $request->input('recipients', []);
+
+        $pivot = [];
+        foreach ($campusIds as $campusId) {
+            $recipientId = $recipients[$campusId] ?? null;
+            $pivot[$campusId] = ['recipient_id' => $recipientId ?: null];
+        }
+
+        $item->campuses()->sync($pivot);
     }
 }
